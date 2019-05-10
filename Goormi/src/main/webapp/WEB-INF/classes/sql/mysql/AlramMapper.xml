@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.grm.sctele.mapper.AlarmMapper">
+
+
+
+	<select id="getAlarmListCnt" parameterType="java.util.Map" resultType="int">
+	<![CDATA[ /* SQL_ID : AlramMapper.getAlarmList, SQL_DESC : 알람 리스트 */ ]]>
+		SELECT 
+			count(1)
+		FROM T_ALARM T_A 
+		WHERE T_A.TRACKER_GROUP_ID = #{trackerGroupId}
+		AND alarm_status != '0'
+		
+		<if test="(alarmGrade != null) and (!''.equals(alarmGrade))">
+			AND T_A.alarm_grade = #{alarmGrade}
+		</if>
+		<if test="(trackerId != null) and (!''.equals(trackerId))">
+			AND T_A.tracker_id = #{trackerId}
+		</if>
+	</select>
+
+	<select id="getAlarmList" parameterType="java.util.Map" resultType="java.util.Map">
+	<![CDATA[ /* SQL_ID : AlramMapper.getAlarmList, SQL_DESC : 알람 리스트 */ ]]>
+		SELECT 
+			T_A.tracker_id, T_A.alarm_type, T_A.alarm_grade, DATE_FORMAT(T_A.upt_date, '%Y-%m-%d %H:%i:%s') as upt_date
+		FROM T_ALARM T_A 
+		WHERE T_A.TRACKER_GROUP_ID = #{trackerGroupId}
+		AND alarm_status != '0'
+		<if test="(alarmGrade != null) and (!''.equals(alarmGrade))">
+			AND T_A.alarm_grade = #{alarmGrade}
+		</if>
+		<if test="(trackerId != null) and (!''.equals(trackerId))">
+			AND T_A.tracker_id = #{trackerId}
+		</if>
+		LIMIT ${skip}, ${limit}	
+	</select>
+	
+</mapper>

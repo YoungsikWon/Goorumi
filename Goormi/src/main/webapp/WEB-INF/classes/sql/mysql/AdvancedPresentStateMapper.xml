@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.grm.sctele.mapper.AdvancedPresentStateMapper">
+
+	<select id="getEnergyListCnt" parameterType="java.util.Map" resultType="int">
+	<![CDATA[ /* SQL_ID : AdvancedPresentStateMapper.getEnergyListCnt, SQL_DESC : 실시간 발전량 리스트 개수 */ ]]>
+		SELECT 
+			count(1)
+		FROM T_TRACKER_ENERGY_COLLECT T_TEC
+		WHERE T_TEC.TRACKER_GROUP_ID = #{trackerGroupId}
+		<if test="(trackerId != null) and (!''.equals(trackerId))">
+			AND T_TEC.tracker_id = #{trackerId}
+		</if>
+		AND T_TEC.reg_date >= STR_TO_DATE(#{startDate}, '%Y-%m-%d %H:%i:%s')
+		AND T_TEC.reg_date &lt;= STR_TO_DATE(#{endDate}, '%Y-%m-%d %H:%i:%s') 
+		
+	</select>
+	
+	
+	<!--<select id="getEnergyList" parameterType="java.util.Map" resultType="java.util.Map">
+	<![CDATA[ /* SQL_ID : AdvancedPresentStateMapper.getRealTimeEnergyList, SQL_DESC : 실시간 발전량 리스트 */ ]]>
+		SELECT T_TG.tracker_group_name, T_T.tracker_name, T_T.tracker_id, T_I.inverter_id, T_T.capacity, T_T.manager, DATE_FORMAT(T_TG.reg_date, '%Y-%m-%d %H:%i:%s') as reg_date
+		FROM T_TRACKER_GROUP T_TG
+		LEFT OUTER JOIN T_TRACKER T_T ON T_T.TRACKER_GROUP_ID = T_TG.TRACKER_GROUP_ID 
+		LEFT OUTER JOIN T_INVERTER T_I ON T_I.TRACKER_GROUP_ID = T_TG.TRACKER_GROUP_ID 	
+
+		WHERE T_TG.TRACKER_GROUP_ID = #{trackerGroupId}
+		<if test="(trackerId != null) and (!''.equals(trackerId))">
+			AND T_TG.tracker_id = #{trackerId}
+		</if>
+		
+		ORDER BY T_TG.reg_date DESC
+		
+		LIMIT ${skip}, ${limit}	
+		
+	</select>-->
+	
+	<select id="getEnergyList" parameterType="java.util.Map" resultType="java.util.Map">
+	<![CDATA[ /* SQL_ID : AdvancedPresentStateMapper.getRealTimeEnergyList, SQL_DESC : 실시간 발전량 리스트 */ ]]>
+		SELECT T_T.tracker_name, T_T.tracker_id, T_I.inverter_id, T_TEC.instant_energy, T_I.capacity, T_T.manager, DATE_FORMAT(T_TEC.reg_date, '%Y-%m-%d %H:%i:%s') as reg_date
+		FROM T_TRACKER_ENERGY_COLLECT T_TEC 
+		LEFT OUTER JOIN 
+			T_INVERTER T_I 
+				ON T_TEC.TRACKER_GROUP_ID = T_I.TRACKER_GROUP_ID AND T_TEC.INVERTER_ID = T_I.INVERTER_ID
+		LEFT OUTER JOIN 
+			T_TRACKER T_T 
+				ON T_TEC.TRACKER_GROUP_ID = T_T.TRACKER_GROUP_ID AND T_TEC.TRACKER_ID = T_T.TRACKER_ID
+
+		WHERE T_TEC.TRACKER_GROUP_ID = #{trackerGroupId}
+		<if test="(trackerId != null) and (!''.equals(trackerId))">
+			AND T_TEC.tracker_id = #{trackerId}
+		</if>
+		AND T_TEC.reg_date >= STR_TO_DATE(#{startDate}, '%Y-%m-%d %H:%i:%s')
+		AND T_TEC.reg_date &lt;= STR_TO_DATE(#{endDate}, '%Y-%m-%d %H:%i:%s') 
+		ORDER BY T_TEC.reg_date DESC
+		LIMIT ${skip}, ${limit}	
+		
+	</select>
+	<select id="getTrackerEnergy" parameterType="java.util.Map" resultType="Float">
+		<![CDATA[ /* SQL_ID : AdvancedPresentStateMapper.getRealTimeEnergyList, SQL_DESC : 실시간 발전량 트래커 에너지 */ ]]>
+		SELECT IFNULL(MAX(INSTANT_ENERGY),0) AS ENERGY
+		FROM T_TRACKER_DATA T_TD
+		WHERE T_TD.TRACKER_GROUP_ID = #{trackerGroupId}
+		<if test="(tracker_id != null) and (!''.equals(tracker_id))">
+			AND T_TD.tracker_id = #{tracker_id}
+		</if>
+	</select>
+	
+	<!-- 
+	<select id="getEnergyList" parameterType="java.util.Map" resultType="java.util.Map">
+	<![CDATA[ /* SQL_ID : AdvancedPresentStateMapper.getRealTimeEnergyList, SQL_DESC : 실시간 발전량 리스트 */ ]]>
+		SELECT 
+			T_TG.tracker_group_name, T_T.tracker_name, T_T.tracker_id, T_TEC.inverter_id, 
+			T_TEC.energy,
+			T_T.capacity,
+			T_T.manager, DATE_FORMAT(T_TEC.reg_date, '%Y-%m-%d %H:%i:%s') as reg_date
+		FROM T_TRACKER_ENERGY_COLLECT T_TEC
+		
+		LEFT OUTER JOIN T_TRACKER_GROUP T_TG
+			ON T_TG.tracker_group_id = T_TEC.tracker_group_id
+		LEFT OUTER JOIN T_TRACKER T_T
+			ON T_T.tracker_id = T_TEC.tracker_id
+		LEFT OUTER JOIN T_INVERTER T_I
+			ON T_I.inverter_id = T_TEC.inverter_id		
+
+		WHERE T_TEC.TRACKER_GROUP_ID = #{trackerGroupId}
+		<if test="(trackerId != null) and (!''.equals(trackerId))">
+			AND T_TEC.tracker_id = #{trackerId}
+		</if>
+		AND T_TEC.reg_date >= STR_TO_DATE(#{startDate}, '%Y-%m-%d %H:%i:%s')
+		AND T_TEC.reg_date &lt;= STR_TO_DATE(#{endDate}, '%Y-%m-%d %H:%i:%s') 
+		
+		ORDER BY T_TEC.reg_date DESC
+		
+		LIMIT ${skip}, ${limit}	
+		
+	</select>
+	-->
+	
+	<select id="getEnergyGraph" parameterType="java.util.Map" resultType="java.util.Map">
+	<![CDATA[ /* SQL_ID : AdvancedPresentStateMapper.getEnergyGraph, SQL_DESC : 발전량 그래프 */ ]]>
+		SELECT 
+		
+			<choose>
+				<when test="dateType == 'typeDays'">
+					DATE_FORMAT(T_TEC.reg_date,'%Y-%m-%d') AS reg_date, 
+				</when>
+				<when test="dateType == 'typeHours'">
+					DATE_FORMAT(T_TEC.reg_date,'%H') AS reg_date, 
+				</when>
+			</choose>		
+			
+			SUM(T_TEC.energy) as sum_energy, 
+			SUM(T_TEC.energy)/count(1) as average_energy
+		FROM T_TRACKER_ENERGY_COLLECT T_TEC
+				
+		WHERE T_TEC.reg_date >= STR_TO_DATE(#{startDate}, '%Y-%m-%d %H:%i:%s')
+		AND T_TEC.reg_date &lt;= STR_TO_DATE(#{endDate}, '%Y-%m-%d %H:%i:%s') 
+		AND T_TEC.tracker_group_id = #{trackerGroupId}
+		<if test="(trackerId != null) and (!''.equals(trackerId))">
+			AND T_TEC.tracker_id = #{trackerId}
+		</if>
+		
+		<choose>
+			<when test="dateType == 'typeDays'">
+				GROUP BY DATE_FORMAT(T_TEC.reg_date,'%Y-%m-%d')
+			</when>
+			<when test="dateType == 'typeHours'">
+				GROUP BY DATE_FORMAT(T_TEC.reg_date,'%H')
+			</when>			
+		</choose>
+	</select>
+	
+	<select id="getWeatherGraph" parameterType="java.util.Map" resultType="java.util.Map">
+	<![CDATA[ /* SQL_ID : AdvancedPresentStateMapper.getEnergyGraph, SQL_DESC : 기온, 일사량, 풍속 그래프 */ ]]>
+		SELECT 
+			DATE_FORMAT(base_date, '%Y-%m-%d') AS reg_date, MAX(T1H) AS temp, MAX(WSD) AS windSpeed
+		FROM T_TRACKER_GROUP_WEATHER_COLLECT
+		WHERE DATE_FORMAT(base_date, '%Y-%m-%d') >= STR_TO_DATE(#{startDate}, '%Y-%m-%d %H:%i:%s')
+		AND DATE_FORMAT(base_date, '%Y-%m-%d') &lt;= STR_TO_DATE(#{endDate}, '%Y-%m-%d %H:%i:%s') 
+		AND tracker_group_id = #{trackerGroupId}
+		GROUP BY DATE_FORMAT(reg_date,'%Y-%m-%d')
+	</select>
+<!-- 	<select id="getWeatherGraph" parameterType="java.util.Map" resultType="java.util.Map">
+	<![CDATA[ /* SQL_ID : AdvancedPresentStateMapper.getEnergyGraph, SQL_DESC : 기온, 일사량, 풍속 그래프 */ ]]>
+		SELECT 
+		
+			<choose>
+				<when test="dateType == 'typeDays'">
+					DATE_FORMAT(T_TDC.reg_date,'%Y-%m-%d') AS reg_date, 
+				</when>
+				<when test="dateType == 'typeHours'">
+					DATE_FORMAT(T_TDC.reg_date,'%H') AS reg_date, 
+				</when>
+			</choose>		
+			
+			MAX(T_TDC.module_temp) as module_temp
+			,MAX(T_TDC.illumination) as illumination
+			,MAX(T_TDC.wind_speed) as wind_speed
+		FROM T_TRACKER_DATA_COLLECT T_TDC
+				
+		WHERE T_TDC.reg_date >= STR_TO_DATE(#{startDate}, '%Y-%m-%d %H:%i:%s')
+		AND T_TDC.reg_date &lt;= STR_TO_DATE(#{endDate}, '%Y-%m-%d %H:%i:%s')
+		AND T_TDC.tracker_group_id = #{trackerGroupId}
+		<if test="(trackerId != null) and (!''.equals(trackerId))">
+			AND T_TDC.tracker_id = #{trackerId}
+		</if>
+		
+		<choose>
+			<when test="dateType == 'typeDays'">
+				GROUP BY DATE_FORMAT(T_TDC.reg_date,'%Y-%m-%d')
+			</when>
+			<when test="dateType == 'typeHours'">
+				GROUP BY DATE_FORMAT(T_TDC.reg_date,'%H')
+			</when>			
+		</choose>
+	</select> -->
+	
+	<select id="getIlluminationGraph" parameterType="java.util.Map" resultType="java.util.Map">
+	<![CDATA[ /* SQL_ID : AdvancedPresentStateMapper.getIlluminationGraph, SQL_DESC : 일사량 그래프 */ ]]>
+		SELECT 
+			<choose>
+				<when test="dateType == 'typeDays'">
+					DATE_FORMAT(T_TDC.reg_date,'%Y-%m-%d') AS reg_date, 
+				</when>
+				<when test="dateType == 'typeHours'">
+					DATE_FORMAT(T_TDC.reg_date,'%H') AS reg_date, 
+				</when>
+			</choose>	
+			SUM(T_TDC.illumination) as sum_illumination, 
+			AVG(T_TDC.illumination) as average_illumination
+		FROM T_TRACKER_DATA_COLLECT T_TDC
+		WHERE T_TDC.reg_date >= STR_TO_DATE(#{startDate}, '%Y-%m-%d %H:%i:%s')
+		AND T_TDC.reg_date &lt;= STR_TO_DATE(#{endDate}, '%Y-%m-%d %H:%i:%s')
+		AND T_TDC.tracker_group_id = #{trackerGroupId}
+		<if test="(trackerId != null) and (!''.equals(trackerId))">
+			AND T_TDC.tracker_id = #{trackerId}
+		</if>
+		<choose>
+			<when test="dateType == 'typeDays'">
+				GROUP BY DATE_FORMAT(T_TDC.reg_date,'%Y-%m-%d')
+			</when>
+			<when test="dateType == 'typeHours'">
+				GROUP BY DATE_FORMAT(T_TDC.reg_date,'%H')
+			</when>			
+		</choose>
+	</select>
+	
+	
+	<!-- <select id="getGroupTotalEnergy" parameterType="java.util.Map" resultType="int">
+	<![CDATA[ /* SQL_ID : AdvancedPresentStateMapper.getGroupTotalEnergy, SQL_DESC : 군집 에너지 합계 */ ]]>
+		SELECT 
+			sum(capacity) 
+		FROM T_TRACKER 
+		WHERE tracker_group_id = #{trackerGroupId}
+		<if test="(trackerId != null) and (!''.equals(trackerId))">
+			AND tracker_id = #{trackerId}
+		</if>
+	</select> -->
+	
+	<select id="getGroupTotalEnergy" parameterType="java.util.Map" resultType="int">
+	<![CDATA[ /* SQL_ID : AdvancedPresentStateMapper.getGroupTotalEnergy, SQL_DESC : 군집 에너지 합계 */ ]]>
+		SELECT SUM(ENERGY) 
+		FROM T_TRACKER_ENERGY_COLLECT 
+		WHERE TRACKER_GROUP_ID = #{trackerGroupId}
+		<if test="(trackerId != null) and (!''.equals(trackerId))">
+			AND tracker_id = #{trackerId}
+		</if>
+		AND 1 = DATEDIFF(NOW(), REG_DATE)
+	</select>
+	
+	<select id="getRealTimeEnergyGraph" parameterType="java.util.Map" resultType="java.util.Map">
+	<![CDATA[ /* SQL_ID : AdvancedPresentStateMapper.getRealTimeEnergyGraph, SQL_DESC : 실시간 발전량 그래프 */ ]]>
+		SELECT reg_date, instant_energy
+		FROM T_TRACKER_ENERGY_COLLECT
+		WHERE TRACKER_GROUP_ID = #{trackerGroupId}
+		<if test="(trackerId != null) and (!''.equals(trackerId))">
+			AND tracker_id = #{trackerId}
+		</if>
+		<!-- AND DATE(reg_date) = #{today} -->
+		AND reg_date >= curdate()
+		ORDER BY reg_date;
+	</select>
+
+	<select id="getTrackerInfo" parameterType="java.util.Map" resultType="java.util.Map">
+	<![CDATA[ /* SQL_ID : AdvancedPresentStateMapper.getTrackerInfo, SQL_DESC : 일자별 트래커 정보*/ ]]>
+		SELECT A.tracker_group_id, A.tracker_id, SUM(B.energy) as energy, A.capacity
+		FROM T_TRACKER A
+		LEFT JOIN
+			(SELECT tracker_group_id, tracker_id, energy
+			FROM T_TRACKER_ENERGY_COLLECT
+			WHERE reg_date >= STR_TO_DATE(#{startDate}, '%Y-%m-%d %H:%i:%s')
+			AND reg_date &lt;= STR_TO_DATE(#{endDate}, '%Y-%m-%d %H:%i:%s')) B
+		ON A.tracker_group_id = B.tracker_group_id
+		AND A.tracker_id = B.tracker_id
+		WHERE A.tracker_group_id = #{trackerGroupId}
+		<if test="(trackerId != null) and (!''.equals(trackerId))">
+		AND A.tracker_id = #{trackerId}
+		</if>
+		GROUP BY tracker_id
+	</select>	
+</mapper>

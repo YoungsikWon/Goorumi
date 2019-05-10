@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.grm.sctele.mapper.InverterMapper">
+
+	<sql id="SQL_COLUMN">
+		T_I.inverter_id, T_I.tracker_group_id, T_I.inverter_name, T_I.capacity, T_I.builder, 
+		T_I.completion_date, T_I.manager, T_I.owner, T_I.phone, T_I.install_date, T_I.reg_date, T_I.history,
+	 	T_TG.tracker_group_name
+	</sql>
+
+	<sql id="SQL_JOIN_TABLE">
+		LEFT OUTER JOIN T_TRACKER_GROUP T_TG
+			ON T_TG.TRACKER_GROUP_ID = T_I.TRACKER_GROUP_ID
+		<if test="('tracker_group_admin'.equals(loginRole))">	
+			LEFT OUTER JOIN T_USER_TRACKER_GROUP T_URG
+				ON T_TG.TRACKER_GROUP_ID = T_URG.TRACKER_GROUP_ID	
+		</if>	
+	</sql>
+	
+	<sql id="SQL_SEARCH">
+		<if test="(likeTrackerGroupName != null) and (!''.equals(likeTrackerGroupName))">
+			AND T_TG.tracker_group_name like '%${likeTrackerGroupName}%'
+		</if>
+		<if test="(likeInverterId != null) and (!''.equals(likeInverterId))">
+			AND T_I.inverter_id like '%${likeInverterId}%'
+		</if>
+		<if test="(likeManager != null) and (!''.equals(likeManager))">
+			AND T_I.manager like '%${likeManager}%'
+		</if>	
+		<if test="('tracker_group_admin'.equals(loginRole))">
+			AND T_URG.user_id = #{userId}
+		</if>	
+	</sql>
+
+	<select id="getInverterListCnt" parameterType="java.util.Map" resultType="int">
+	<![CDATA[ /* SQL_ID : InverterMapper.getInverterListCnt, SQL_DESC : 인버터 리스트 카운트 */ ]]>
+		SELECT 
+			count(1)
+		FROM T_INVERTER T_I
+			<include refid="SQL_JOIN_TABLE" />
+		WHERE 1=1
+			<include refid="SQL_SEARCH" />
+	</select>
+
+	<select id="getInverterList" parameterType="java.util.Map" resultType="java.util.Map">
+	<![CDATA[ /* SQL_ID : InverterMapper.getInverterList, SQL_DESC : 인버터 리스트 */ ]]>
+		SELECT 
+			<include refid="SQL_COLUMN" />
+		FROM T_INVERTER T_I
+			<include refid="SQL_JOIN_TABLE" />
+		WHERE 1=1
+			<include refid="SQL_SEARCH" />
+		<if test="(trackerGroupId != null) and (!''.equals(trackerGroupId))">
+			AND T_I.tracker_group_id = #{trackerGroupId}
+		</if>
+		<if test="(trackerId != null) and (!''.equals(trackerId))">
+			AND T_I.tracker_id = #{trackerId}
+		</if>
+		LIMIT ${skip}, ${limit}	
+	</select>
+	
+	<select id="getInverterInfo" parameterType="java.util.Map" resultType="java.util.Map">
+	<![CDATA[ /* SQL_ID : InverterMapper.getInverterInfo, SQL_DESC : 인버터 정보 */ ]]>
+		SELECT 
+			<include refid="SQL_COLUMN" />
+		FROM T_INVERTER T_I
+			<include refid="SQL_JOIN_TABLE" />
+		WHERE 1=1
+		<if test="(trackerGroupId != null) and (!''.equals(trackerGroupId))">
+			AND T_I.tracker_group_id = #{trackerGroupId}
+		</if>
+		<if test="(inverterId != null) and (!''.equals(inverterId))">
+			AND T_I.inverter_id = #{inverterId}
+		</if>
+	</select>
+	
+	<select id="inverterIdCheck" parameterType="String" resultType="int">
+	<![CDATA[ /* SQL_ID : InverterMapper.inverterIdCheck, SQL_DESC : 인버터 아이디 중복검사 */ ]]>
+		SELECT 
+			count(1)
+		FROM T_INVERTER T_I
+		WHERE T_I.inverter_id = #{inverterId}
+		AND T_I.tracker_group_id = #{trackerGroupId}
+	</select>
+	
+	<select id="getInverterModelList" parameterType="java.util.Map" resultType="java.util.Map">
+	<![CDATA[ /* SQL_ID : InverterMapper.getInverterModelList, SQL_DESC : 인버터 조회 (Model) */ ]]>
+		SELECT 
+			T_I.inverter_id, T_I.tracker_group_id, T_TG.tracker_group_name
+		FROM T_INVERTER T_I
+		LEFT OUTER JOIN T_TRACKER_GROUP T_TG
+			ON T_TG.TRACKER_GROUP_ID = T_I.TRACKER_GROUP_ID
+		WHERE 1=1
+		<if test="(inverterId != null) and (!''.equals(inverterId))">
+			AND T_I.inverter_id like '%${inverterId}%'
+		</if>
+		<if test="(trackerGroupId != null) and (!''.equals(trackerGroupId))">
+			AND T_I.tracker_group_id = #{trackerGroupId}
+		</if>
+		ORDER BY T_I.inverter_id+0
+	</select>
+	
+	<select id="getInverterEnergy" parameterType="java.util.Map" resultType="java.util.Map">
+	<![CDATA[ /* SQL_ID : InverterMapper.getInverterEnergy, SQL_DESC : 인버터 발전량 조회 */ ]]>
+		SELECT 
+			SUM(T_TEC.energy) as sum_energy
+		FROM T_TRACKER_ENERGY_COLLECT T_TEC
+			
+		WHERE T_TEC.reg_date >= STR_TO_DATE(#{startDate}, '%Y-%m-%d %H:%i:%s')
+		AND T_TEC.reg_date &lt;= STR_TO_DATE(#{endDate}, '%Y-%m-%d %H:%i:%s')
+		<if test="(trackerGroupId != null) and (!''.equals(trackerGroupId))">
+			AND T_TEC.tracker_group_id = #{trackerGroupId}
+		</if>
+		<if test="(trackerId != null) and (!''.equals(trackerId))">
+			AND T_TEC.tracker_id = #{trackerId}
+		</if>
+	</select>
+		
+	<select id="getInverterAccuEnergy" parameterType="java.util.Map" resultType="java.util.Map">
+		<![CDATA[ /* SQL_ID : InverterMapper.getInverterAccuEnergy, SQL_DESC : 인버터 용량, 오늘, 어제, 그저깨 발전량 조회 */]]>
+		SELECT 
+			(
+				SELECT SUM(ENERGY) FROM T_TRACKER_ENERGY_COLLECT 
+				WHERE TRACKER_GROUP_ID = #{trackerGroupId}
+				<if test="limitMinutes != null">
+					AND REG_DATE > DATE_ADD(NOW(), INTERVAL ${limitMinutes} MINUTE)	
+				</if>
+				<if test="(trackerId != null) and (!''.equals(trackerId))">
+					AND tracker_id = #{trackerId}
+				</if>
+			) AS CURRENT_ENERGY,
+			(
+				SELECT SUM(ENERGY) FROM T_TRACKER_ENERGY_COLLECT 
+				WHERE TRACKER_GROUP_ID = #{trackerGroupId}
+				<if test="(trackerId != null) and (!''.equals(trackerId))">
+					AND tracker_id = #{trackerId}
+				</if>
+				AND REG_DATE &gt;= CURDATE()
+				<!-- AND 0 = DATEDIFF(NOW(), REG_DATE) -->
+			) AS TODAY_ENERGY,
+			(
+				SELECT SUM(ENERGY) FROM T_TRACKER_ENERGY_COLLECT 
+				WHERE TRACKER_GROUP_ID = #{trackerGroupId}
+				<if test="(trackerId != null) and (!''.equals(trackerId))">
+					AND tracker_id = #{trackerId}
+				</if>
+				AND REG_DATE &gt;= DATE_SUB(CURDATE(), INTERVAL 1 DAY) AND REG_DATE &lt; CURDATE()
+				<!-- AND 1 = DATEDIFF(NOW(), REG_DATE) -->
+			) AS YESTERDAY_ENERGY,
+			(
+				SELECT SUM(ACCU_ENERGY) FROM T_INVERTER 
+				WHERE TRACKER_GROUP_ID = #{trackerGroupId}
+			) AS TOTAL_INVERTER_ENERGY
+		FROM 
+		 DUAL
+	</select>
+</mapper>

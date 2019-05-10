@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.grm.sctele.mapper.TrackerMapper">
+
+	<sql id="SQL_COLUMN">
+		T_T.tracker_id, T_T.tracker_group_id, T_T.tracker_name, T_T.capacity, T_T.builder,
+		T_T.completion_date, T_T.manager, T_T.owner, T_T.phone, T_T.install_date, T_T.reg_date, T_T.history,
+		T_T.site_x, T_T.site_y,
+	 	T_TG.tracker_group_name, T_TD.x_angle, T_TD.y_angle, T_TD.body_temp, T_TD.body_humd, T_TD.loc_Lat, T_TD.loc_Lng
+	</sql>
+
+	<sql id="SQL_JOIN_TABLE">
+		LEFT OUTER JOIN T_TRACKER_GROUP T_TG
+			ON T_TG.tracker_group_id = T_T.tracker_group_id
+			
+		LEFT OUTER JOIN T_TRACKER_DATA T_TD
+			ON T_TD.tracker_id = T_T.tracker_id	
+			AND T_TD.tracker_group_id = T_T.tracker_group_id
+		<if test="('tracker_group_admin'.equals(loginRole))">	
+			LEFT OUTER JOIN T_USER_TRACKER_GROUP T_URG
+				ON T_TG.tracker_group_id = T_URG.tracker_group_id		
+		</if>
+	</sql>
+	
+	<sql id="SQL_SEARCH">
+		<if test="(likeTrackerGroupName != null) and (!''.equals(likeTrackerGroupName))">
+			AND T_TG.tracker_group_name like '%${likeTrackerGroupName}%'
+		</if>
+		<if test="(likeTrackerId != null) and (!''.equals(likeTrackerId))">
+			AND T_T.tracker_id like '%${likeTrackerId}%'
+		</if>
+		<if test="(likeManager != null) and (!''.equals(likeManager))">
+			AND T_T.manager like '%${likeManager}%'
+		</if>
+		<if test="(trackerGroupId != null) and (!''.equals(trackerGroupId))">
+			AND T_TG.tracker_group_id = #{trackerGroupId}
+		</if>		
+		<if test="('tracker_group_admin'.equals(loginRole))">
+			AND T_URG.user_id = #{userId}
+		</if>
+	</sql>
+
+	<select id="getTrackerListCnt" parameterType="java.util.Map" resultType="int">
+	<![CDATA[ /* SQL_ID : TrackerMapper.getTrackerListCnt, SQL_DESC : 트래커 리스트 카운트 */ ]]>
+		SELECT 
+			count(1)
+		FROM T_TRACKER T_T
+			<include refid="SQL_JOIN_TABLE" />
+		WHERE 1=1
+			<include refid="SQL_SEARCH" />
+	</select>
+
+
+
+	<select id="getTrackerList" parameterType="java.util.Map" resultType="java.util.Map">
+	<![CDATA[ /* SQL_ID : TrackerMapper.getTrackerList, SQL_DESC : 트래커 리스트 */ ]]>
+		SELECT 
+			<include refid="SQL_COLUMN" />
+		FROM T_TRACKER T_T
+			<include refid="SQL_JOIN_TABLE" />
+		WHERE 1=1
+			<include refid="SQL_SEARCH" />
+		<if test="skip != null and limit != null">
+			LIMIT ${skip}, ${limit}	
+		</if>
+		
+	</select>
+	
+	<select id="getTrackerInfo" parameterType="java.util.Map" resultType="java.util.Map">
+	<![CDATA[ /* SQL_ID : TrackerMapper.getTrackerInfo, SQL_DESC : 트래커 정보 */ ]]>
+		SELECT 
+			<include refid="SQL_COLUMN" />
+		FROM T_TRACKER T_T
+			<include refid="SQL_JOIN_TABLE" />
+		WHERE 1=1
+		<if test="(trackerGroupId != null) and (!''.equals(trackerGroupId))">
+			AND T_TG.tracker_group_id = #{trackerGroupId}
+		</if>
+		<if test="(trackerId != null) and (!''.equals(trackerId))">
+			AND T_T.TRACKER_ID = #{trackerId}
+		</if>
+	</select>
+	
+	<select id="trackerIdCheck" parameterType="java.util.Map" resultType="int">
+	<![CDATA[ /* SQL_ID : TrackerMapper.trackerIdCheck, SQL_DESC : 트래커 아이디 중복검사 */ ]]>
+		SELECT 
+			count(1)
+		FROM T_TRACKER T_T
+		WHERE T_T.tracker_id = #{trackerId}
+		AND T_T.tracker_group_id = #{trackerGroupId}
+	</select>
+	
+	<select id="getInverterList" parameterType="java.util.Map" resultType="java.util.Map">
+	<![CDATA[ /* SQL_ID : TrackerMapper.getInverterList, SQL_DESC : 트래커에 등록된 인버터 리스트 */ ]]>
+		SELECT 
+			inverter_id, tracker_id
+		FROM T_TRACKER_INVERTER
+		WHERE 1=1
+		<if test="(trackerId != null) and (!''.equals(trackerId))">
+			AND tracker_id = #{trackerId}
+		</if>
+		<if test="(trackerGroupId != null) and (!''.equals(trackerGroupId))">
+			AND tracker_group_id = #{trackerGroupId}
+		</if>
+		<if test="(inverterId != null) and (!''.equals(inverterId))">
+			AND inverter_id = #{inverterId}
+		</if>
+	</select>
+	
+	<select id="getTrackerModelList" parameterType="java.util.Map" resultType="java.util.Map">
+	<![CDATA[ /* SQL_ID : TrackerMapper.getTrackerModelList, SQL_DESC : 트래커 조회 (Model) */ ]]>
+		SELECT 
+			T_T.tracker_id, T_T.tracker_group_id, T_TG.tracker_group_name
+		FROM T_TRACKER T_T
+		LEFT OUTER JOIN T_TRACKER_GROUP T_TG
+			ON T_TG.TRACKER_GROUP_ID = T_T.TRACKER_GROUP_ID
+<!-- 		LEFT OUTER JOIN T_USER_TRACKER T_UT -->
+<!-- 			ON T_UT.TRACKER_ID = T_T.TRACKER_ID -->
+		WHERE 1=1
+		<if test="(eqAreaCode != null) and (!''.equals(eqAreaCode))">
+			AND T_TG.area_code = #{eqAreaCode}
+		</if>
+		<if test="(eqTrackerGroupId != null) and (!''.equals(eqTrackerGroupId))">
+			AND T_TG.tracker_group_id = #{eqTrackerGroupId}
+		</if>
+		<if test="(likeTrackerId != null) and (!''.equals(likeTrackerId))">
+			AND T_T.tracker_id like '%${likeTrackerId}%'
+		</if>
+		<if test="('tracker_admin'.equals(loginRole))">
+			<if test="(userId != null) and (!''.equals(userId))">
+				AND T_UT.user_id = #{userId}
+			</if>
+		</if>
+	</select>
+	
+	<select id="getTrackerLoginUserInfo" parameterType="java.util.Map" resultType="java.util.Map">
+	<![CDATA[ /* SQL_ID : TrackerMapper.getTrackerLoginUserInfo, SQL_DESC : 일반 사용자 로그인시 관리 군집이 1개일 경우 트래커 선택 정보 */ ]]>
+		SELECT 
+		  T_UT.tracker_id, T_UT.tracker_group_id, T_TG.area_code
+		FROM T_USER_TRACKER T_UT
+		LEFT OUTER JOIN T_TRACKER_GROUP T_TG
+			ON T_UT.TRACKER_GROUP_ID = T_TG.TRACKER_GROUP_ID
+		WHERE 1=1
+		AND T_UT.user_id = #{userId}
+	
+	</select>
+	
+	<select id="getTrackerCapacity" parameterType="java.util.Map" resultType="java.util.Map">
+		<![CDATA[ /* SQL_ID : TrackerMapper.getTrackerLoginUserInfo, SQL_DESC : 트래커 capacity 정보 */ ]]>
+		SELECT 
+			TG.SUM_CAPACITY AS TOTAL_CAPACITY, TA.SUM_CAPACITY AS TRACKER_CAPACITY
+		FROM 
+			(
+				SELECT SUM(CAPACITY) AS SUM_CAPACITY FROM T_TRACKER 
+				WHERE TRACKER_GROUP_ID = #{trackerGroupId}
+			)TG,
+			(
+				SELECT SUM(CAPACITY) AS SUM_CAPACITY FROM T_TRACKER 
+				WHERE 1=1 
+				<if test="(trackerId != null) and (!''.equals(trackerId))">
+					AND TRACKER_ID = #{trackerId} 
+				</if>
+				AND TRACKER_GROUP_ID =#{trackerGroupId}
+			) TA
+
+			
+	</select>
+	
+</mapper>

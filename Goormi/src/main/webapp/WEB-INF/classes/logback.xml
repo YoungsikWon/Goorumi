@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+
+<configuration scan="true" scanPeriod="60 seconds">
+	<property resource="./config/config.properties" />
+	
+	<contextName>${log.contextName}</contextName>
+	<jmxConfigurator />
+
+	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<!-- <pattern>%-5level-%d@%-22thread[%c{20}.%method:%L]-%m%n</pattern> -->
+			<pattern>%-5level-%d@%-22thread[%c{20}:%L]-%m%n</pattern>
+		</encoder>
+	</appender>
+
+	<appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+			<file>${log.path}/${log.filename}.log</file>
+			<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+					<fileNamePattern>${log.path.history}/%d{yyyyMM}/${log.filename}-%d{yyyyMMdd}.%i.gz</fileNamePattern>
+					<timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+							<maxFileSize>200MB</maxFileSize>
+					</timeBasedFileNamingAndTriggeringPolicy>
+					<!-- 
+					<maxHistory>30</maxHistory>
+					 -->
+			</rollingPolicy>
+			<append>true</append>
+			<encoder>
+				<pattern>%-5level-%d@%-22thread[%c{20}:%L]-%m%n</pattern>
+			</encoder>
+	</appender>
+
+	<appender name="FILE_WARN" class="ch.qos.logback.core.rolling.RollingFileAppender">
+			<file>${log.path}/${log.filename}_error.log</file>
+			<filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+					<level>WARN</level>
+			</filter>
+			<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+					<fileNamePattern>${log.path.history}/error/${log.filename}_error-%d{yyyyMMdd}.log</fileNamePattern>
+					<maxHistory>300</maxHistory>
+			</rollingPolicy>
+			<append>true</append>
+			<encoder>
+				<pattern>%-5level-%d@%-22thread[%c{20}:%L]-%m%n</pattern>
+			</encoder>
+	</appender>
+
+	<logger name="org.apache" level="WARN" />
+	<logger name="org.springframework" level="INFO" />
+	<logger name="org.springframework.security" level="INFO" />
+	
+	<logger name="org.hibernate" level="INFO" />
+	<logger name="org.hibernate.SQL" level="INFO" />
+	<logger name="org.hibernate.engine.transaction" level="INFO" />
+	<logger name="org.hibernate.engine.jdbc" level="INFO" />
+	
+	<logger name="org.quartz" level="INFO" />
+
+	<logger name="org.eclipse.jetty" level="INFO" />
+	
+	<logger name="com.zaxxer.hikari" level="INFO" />
+	<logger name="HikariPool" level="INFO" />
+	
+	<root level="${log.level.root}">
+		<!-- 
+		<appender-ref ref="STDOUT" />
+		 -->
+		<appender-ref ref="FILE" />
+		<appender-ref ref="FILE_WARN" />
+	</root>
+</configuration>

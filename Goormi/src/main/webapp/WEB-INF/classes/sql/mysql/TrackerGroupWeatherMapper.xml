@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.grm.sctele.mapper.TrackerGroupWeatherMapper">
+
+	<!-- <select id="getWeatherInfo" parameterType="java.util.Map" resultType="java.util.Map">
+	<![CDATA[ /* SQL_ID : AlramMapper.getAlarmList, SQL_DESC : 알람 리스트 */ ]]>
+		SELECT 
+			T_TGW.sky_code, T_TGW.tc, T_TGW.wspd, T_TGW.sky_name, T_TGW.humidity, SUM(T_TD.illumination)/count(1) as average_illumination
+		FROM T_TRACKER_GROUP_WEATHER T_TGW
+		LEFT OUTER JOIN T_TRACKER_DATA T_TD
+			ON T_TD.tracker_group_id = T_TGW.tracker_group_id
+		
+		WHERE T_TGW.TRACKER_GROUP_ID = #{trackerGroupId}
+		
+		<if test="(trackerId != null) and (!''.equals(trackerId))">
+			and T_TD.tracker_id = #{trackerId}
+		</if>
+		
+	</select> -->
+	
+	<select id="getWeatherInfo" parameterType="java.util.Map" resultType="java.util.Map">
+	<![CDATA[ /* SQL_ID : AlramMapper.getWeatherInfo, SQL_DESC : 군집 날씨 정보 조회 */ ]]>
+		SELECT 
+			T_TGWC.SKY, T_TGWC.PTY, T_TGWC.T1H, T_TGWC.REH, T_TGWC.WSD, T_TD.illumination AS average_illumination
+		FROM T_TRACKER_GROUP_WEATHER_COLLECT T_TGWC
+		LEFT JOIN T_TRACKER_DATA T_TD 
+			ON T_TD.tracker_group_id = T_TGWC.tracker_group_id
+		WHERE T_TGWC.TRACKER_GROUP_ID = #{trackerGroupId}
+		
+		<if test="(trackerId != null) and (!''.equals(trackerId))">
+			and T_TD.tracker_id = #{trackerId}
+		</if>
+		ORDER BY T_TGWC.base_date DESC, T_TGWC.base_time DESC
+		LIMIT 1
+	</select>
+	
+</mapper>

@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:cache="http://www.springframework.org/schema/cache"
+	xsi:schemaLocation="http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+						http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+						http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
+						http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd
+						http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+						http://www.springframework.org/schema/cache http://www.springframework.org/schema/cache/spring-cache.xsd
+	">
+	
+	<util:properties id="dbConfig" location="classpath:config/db.properties"/>
+
+	<!-- Annotation Cache -->
+	<!-- <cache:annotation-driven mode="proxy" cache-manager="cacheManager" /> -->
+	
+	<!-- Annotaion Transaction(명시적 어노테이션 지정) -->
+	<tx:annotation-driven transaction-manager="transactionManager" />
+	
+	<!-- JDBC Connection - Use HikariCP -->
+	<bean id="dataSource" class="com.zaxxer.hikari.HikariDataSource" destroy-method="close">
+	    <constructor-arg>
+	        <bean class="com.zaxxer.hikari.HikariConfig">
+	            <property name="driverClassName" value="#{dbConfig['jdbc.driverClassName']}" />
+	            <property name="jdbcUrl" value="#{dbConfig['jdbc.url']}" />
+	            <property name="username" value="#{dbConfig['jdbc.username']}" />
+	            <property name="password" value="#{dbConfig['jdbc.password']}" />
+	            <!-- <property name="dataSourceClassName" value="#{dbConfig['hcp.dataSourceClassName']}" /> driverClassName이 있는 경우 제외할 수 있음. -->
+	
+				<property name="autoCommit" value="true" />
+				<property name="readOnly" value="false" />
+				
+	            <!-- <property name="minimumIdle" value="#{dbConfig['hcp.minimumIdle']}" />  유지할 최소 Connection 개수, maximumPoolSize와 동일하게 사용하는 것을 권장함. - Default : maximumPoolSize 개수 -->
+	            <property name="maximumPoolSize" value="#{dbConfig['hcp.maximumPoolSize']}" /> <!-- 최대 Connection 개수 -->
+	
+				<property name="leakDetectionThreshold" value="0" />
+				
+				<property name="idleTimeout" value="#{dbConfig['hcp.idleTimeout']}" /> <!-- Connection의 maximum idle time 결정, Default:10분 -->
+				<property name="maxLifetime" value="1800000" /> <!-- Connection 최대 생명주기, 30~60분을 권장, Default:30분 -->
+	            <property name="connectionTimeout"  value="#{dbConfig['hcp.connectionTimeout']}" /> <!-- Connection 연결 시도 Timeout, Default:30초 -->
+	            <property name="connectionTestQuery" value="#{dbConfig['jdbc.connectionTestQuery']}" />
+	
+				<!-- Logging, JMX Management에 지정할 Pool 이름 -->
+	            <property name="poolName" value="#{dbConfig['hcp.poolName']}" />
+	            <!-- JMX Management Beans 등록 -->
+	            <!-- <property name="registerMbeans" value="true" /> -->
+	        </bean>
+	    </constructor-arg>		
+	</bean>	
+	
+	<!-- Session Factory -->
+	<!-- Hibernate -->
+	<bean id="sessionFactory" class="org.springframework.orm.hibernate4.LocalSessionFactoryBean" >
+		<property name="dataSource" ref="dataSource" />
+		<!-- <property name="packagesToScan" value="com.grm.**.model"/> -->
+		<property name="packagesToScan">
+			<array>
+				<value>com.grm.**.model</value>
+				<value>com.grm.**.repository</value>
+			</array>
+		</property>
+		<property name="hibernateProperties">
+			<props>
+				<prop key="hibernate.dialect">#{dbConfig['jdbc.hibernate.dialect']}</prop>
+				<prop key="hibernate.show_sql">#{dbConfig['jdbc.hibernate.show_sql']}</prop>
+				<prop key="hibernate.format_sql">true</prop>
+				<prop key="hibernate.use_sql_comments">true</prop>
+				<prop key="hibernate.cache.use_second_level_cache">false</prop>
+			</props>
+		</property>
+	</bean>
+	<bean class="org.springframework.orm.hibernate4.HibernateExceptionTranslator" />
+	<bean id="transactionManager" class="org.springframework.orm.hibernate4.HibernateTransactionManager">
+		<property name="sessionFactory" ref="sessionFactory" />
+	</bean>
+	
+	<!-- MyBatis -->
+	<!-- 
+	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource"/>
+	</bean>
+	-->
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+  		<property name="dataSource" ref="dataSource" />
+  		<property name="typeAliasesPackage" value="com.grm.sctele.model" />
+  		<property name="mapperLocations" value="classpath:sql/#{dbConfig['jdbc.db']}/**/*.xml"/>
+  		<!-- <property name="configLocation" value="classpath:mybatis/configuration.xml"></property> -->
+  		<property name="configuration">
+  			<bean class="org.apache.ibatis.session.Configuration">
+  				<property name="useColumnLabel" value="true" />
+  				<property name="mapUnderscoreToCamelCase" value="true" />
+  			</bean>
+  		</property>
+	</bean>
+	<bean id="sqlSessionTemplate" class="org.mybatis.spring.SqlSessionTemplate">
+		<constructor-arg index="0" ref="sqlSessionFactory" />
+	</bean>
+   	<bean id="mapperScannerConfigurer" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+   		<property name="basePackage" value="com.grm.sctele.mapper"/>
+   		<property name="annotationClass" value="org.springframework.stereotype.Repository"/>
+   		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"/>
+   	</bean>	
+	<!--
+	-->
+</beans>
